@@ -67,14 +67,13 @@ static inline char get_current_command(Program *program) {
     return (char)(program->src_file_content.buffer[program->instruction_idx]);
 }
 
-static inline bool has_executed_last_command(Program *program) {
-    return program->instruction_idx >= program->src_file_content.size;
+static inline ProgramState get_state(Program *program) {
+    return program->instruction_idx >= program->src_file_content.size ?
+        ProgramState_Done : ProgramState_Running;
 }
 
 static ProgramState parse_and_execute_command(Program *program) {
-    ProgramState state = ProgramState_Running;
     char command = get_current_command(program);
-
     switch (command) {
         case '>':
             // The language design does not specify what to do if the data
@@ -100,7 +99,7 @@ static ProgramState parse_and_execute_command(Program *program) {
             printf("%c", (char)(program->data[program->data_idx]));
             break;
         case ',': {
-            // For simplicity, the input stream is stdin
+            // For simplicity, the input stream is 'stdin'
             char c = getchar();
             if (c == EOF) { c = 0; }
             program->data[program->data_idx] = (uint8_t)c;
@@ -111,7 +110,9 @@ static ProgramState parse_and_execute_command(Program *program) {
                 uint64_t count = 1;
                 while (count) {
                     program->instruction_idx++;
-                    if (has_executed_last_command(program)) {
+                    if (get_state(program) == ProgramState_Done) {
+                        // The instruction pointer has exceeded the number of
+                        // instructions available
                         fprintf(stderr, "Could not find loop end\n");
                         break;
                     }
@@ -125,11 +126,12 @@ static ProgramState parse_and_execute_command(Program *program) {
             if (program->data[program->data_idx] != 0) {
                 uint64_t count = 1;
                 while (count) {
-                    program->instruction_idx--;
-                    if (program->instruction_idx < 0) {
+                    if (program->instruction_idx == 0) {
+                        // There's no matching '['
                         fprintf(stderr, "Could not find loop start\n");
                         break;
                     }
+                    program->instruction_idx--;
                     command = get_current_command(program);
                     count += command == ']';
                     count -= command == '[';
@@ -139,11 +141,8 @@ static ProgramState parse_and_execute_command(Program *program) {
         default:
             break;
     }
-
     program->instruction_idx++;
-    state = has_executed_last_command(program) ? ProgramState_Done : state;
-
-    return state;
+    return get_state(program);
 }
 
 static void execute(Program *program) {
