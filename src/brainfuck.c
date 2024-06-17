@@ -158,8 +158,8 @@ int main(int argc, char **argv) {
     }
 
     char *src_file_path = argv[1];
-
     FileContent src_file_content = read_entire_file(src_file_path);
+
     if (src_file_content.size) {
         Program program = init_program(src_file_content);
         execute(&program);
