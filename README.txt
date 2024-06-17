@@ -1,4 +1,5 @@
 A simple Brainfuck interpreter.
+Requires a 64-bit processor.
 
 Usage:
 
