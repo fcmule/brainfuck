@@ -24,7 +24,6 @@ typedef enum {
 } ProgramState;
 
 static uint64_t get_file_size(FILE *file) {
-    if (file == NULL) { return 0; }
     fseek(file, 0, SEEK_END);
     uint64_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -34,14 +33,15 @@ static uint64_t get_file_size(FILE *file) {
 static FileContent read_entire_file(char *file_path) {
     FileContent file_content;
     FILE *file = fopen(file_path, "rb");
-    file_content.size = get_file_size(file);
     if (file != NULL) {
+        file_content.size = get_file_size(file);
         file_content.buffer = malloc(file_content.size);
         // The entire content of the file is loaded into RAM
         fread(file_content.buffer, file_content.size, 1, file);
         fclose(file);
     } else {
         fprintf(stderr, "Could not read file at path: %s\n", file_path);
+        file_content.size = 0;
         file_content.buffer = NULL;
     }
     return file_content;
@@ -160,9 +160,10 @@ int main(int argc, char **argv) {
     char *src_file_path = argv[1];
 
     FileContent src_file_content = read_entire_file(src_file_path);
-    Program program = init_program(src_file_content);
-
-    execute(&program);
+    if (src_file_content.size) {
+        Program program = init_program(src_file_content);
+        execute(&program);
+    }
 
     return 0;
 }
